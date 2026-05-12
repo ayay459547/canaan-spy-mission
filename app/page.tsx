@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, ReactNode } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Map,
   Users,
@@ -18,13 +18,6 @@ import {
 } from "lucide-react";
 
 // --- 型別定義 Interfaces ---
-interface FadeInProps {
-  children: ReactNode;
-  delay?: number;
-  className?: string;
-  direction?: "up" | "left" | "right" | "none";
-}
-
 interface FeatureItem {
   icon: React.ElementType;
   title: string;
@@ -57,67 +50,6 @@ interface BackgroundDust {
   duration: number;
   delay: number;
 }
-
-// --- 自訂動畫 Hook (模擬 Framer Motion 效果) ---
-const useScrollAnimation = (): [
-  React.RefObject<HTMLDivElement | null>,
-  boolean,
-] => {
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const domRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.15, rootMargin: "0px 0px -50px 0px" },
-    );
-
-    const current = domRef.current;
-    if (current) observer.observe(current);
-
-    return () => {
-      if (current) observer.unobserve(current);
-    };
-  }, []);
-
-  return [domRef, isVisible];
-};
-
-// --- 動畫包裹元件 ---
-const FadeIn: React.FC<FadeInProps> = ({
-  children,
-  delay = 0,
-  className = "",
-  direction = "up",
-}) => {
-  const [ref, isVisible] = useScrollAnimation();
-
-  let translateClass = "translate-y-12";
-  if (direction === "left") translateClass = "-translate-x-12";
-  if (direction === "right") translateClass = "translate-x-12";
-  if (direction === "none") translateClass = "scale-95";
-
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-1000 ease-out ${
-        isVisible
-          ? "opacity-100 translate-y-0 translate-x-0 scale-100"
-          : `opacity-0 ${translateClass}`
-      } ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
-    >
-      {children}
-    </div>
-  );
-};
 
 export default function App() {
   // --- 資料定義 ---
@@ -237,33 +169,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans overflow-x-hidden selection:bg-amber-500/30">
-      {/* 注入自訂 CSS 動畫 */}
+      {/* 注入自訂 CSS (已移除 keyframes) */}
       <style
         dangerouslySetInnerHTML={{
           __html: `
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
-        }
-        @keyframes dust {
-          0% { transform: translateY(0) translateX(0); opacity: 0; }
-          50% { opacity: 1; }
-          100% { transform: translateY(-100vh) translateX(50px); opacity: 0; }
-        }
-        @keyframes pulse-glow {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.05); }
-        }
-        @keyframes flicker {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.8; transform: scale(0.98); }
-          25%, 75% { opacity: 0.9; transform: scale(1.02); }
-        }
-        .animate-float { animation: float 6s ease-in-out infinite; }
-        .animate-dust { animation: dust 10s linear infinite; }
-        .animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
-        .animate-flicker { animation: flicker 0.2s infinite alternate; }
-        
         /* 確保寶石一定會發光的自訂 Class */
         .gem-glow {
           filter: drop-shadow(0 0 6px rgba(34, 211, 238, 0.9));
@@ -287,23 +196,20 @@ export default function App() {
           {backgroundStars.map((star) => (
             <div
               key={`star-${star.id}`}
-              className="absolute w-1 h-1 bg-white rounded-full animate-pulse-glow"
+              className="absolute w-1 h-1 bg-white rounded-full"
               style={{
                 top: `${star.top}%`,
                 left: `${star.left}%`,
-                animationDelay: `${star.delay}s`,
               }}
             />
           ))}
           {backgroundDusts.map((dust) => (
             <div
               key={`dust-${dust.id}`}
-              className="absolute w-2 h-2 bg-amber-500/20 rounded-full animate-dust blur-[1px]"
+              className="absolute w-2 h-2 bg-amber-500/20 rounded-full blur-[1px]"
               style={{
-                bottom: "-10px",
+                bottom: "10px", // 改為固定位置，或者您也可以移除此 div 若不需要靜態沙塵
                 left: `${dust.left}%`,
-                animationDuration: `${dust.duration}s`,
-                animationDelay: `${dust.delay}s`,
               }}
             />
           ))}
@@ -315,27 +221,20 @@ export default function App() {
         </div>
 
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-20 pb-24">
-          <FadeIn delay={200}>
-            <h1
-              className="text-5xl sm:text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-orange-600 mb-6 drop-shadow-2xl tracking-tight"
-              style={{ textShadow: "0 10px 30px rgba(245,158,11,0.3)" }}
-            >
-              曠野中的
-              <br />
-              十二探子
-            </h1>
-          </FadeIn>
-
-          <FadeIn delay={400}>
-            <p className="text-xl sm:text-2xl text-amber-100/90 font-medium tracking-wide mb-12 drop-shadow-md">
-              你願意成為探子，探索神所應許的迦南地嗎？
-            </p>
-          </FadeIn>
-
-          <FadeIn
-            delay={600}
-            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+          <h1
+            className="text-5xl sm:text-7xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-orange-600 mb-6 drop-shadow-2xl tracking-tight"
+            style={{ textShadow: "0 10px 30px rgba(245,158,11,0.3)" }}
           >
+            曠野中的
+            <br />
+            十二探子
+          </h1>
+
+          <p className="text-xl sm:text-2xl text-amber-100/90 font-medium tracking-wide mb-12 drop-shadow-md">
+            你願意成為探子，探索神所應許的迦南地嗎？
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
             <button
               onClick={() =>
                 document
@@ -346,7 +245,7 @@ export default function App() {
             >
               <div className="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
               <span className="relative flex items-center gap-2">
-                <Flame className="w-6 h-6 animate-flicker" /> 開始冒險
+                <Flame className="w-6 h-6" /> 開始冒險
               </span>
             </button>
             <button
@@ -362,7 +261,7 @@ export default function App() {
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
             </button>
-          </FadeIn>
+          </div>
         </div>
 
         <button
@@ -383,40 +282,34 @@ export default function App() {
         className="py-24 relative parchment-bg text-stone-900 border-y-8 border-stone-800"
       >
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
-          <FadeIn>
-            <Map className="w-16 h-16 mx-auto text-amber-700 mb-6 opacity-80" />
-            <h2 className="text-3xl md:text-5xl font-bold mb-8 text-stone-800 tracking-wider">
-              傳說的開始...
-            </h2>
-            <div className="space-y-6 text-lg md:text-2xl font-medium leading-relaxed text-stone-700">
-              <p>摩西派出了十二名探子，跨越荒蕪的曠野，進入那神秘的迦南地。</p>
-              <p>
-                在那裡，他們看見了
-                <strong className="text-emerald-700">極其豐盛的土地</strong>、
-                <strong className="text-stone-900">高聳入雲的城牆</strong>
-                ，以及令人畏懼的
-                <strong className="text-red-700">亞衲族巨人</strong>。
-              </p>
-              <p>面對巨大的未知...</p>
-              <p className="text-xl md:text-3xl font-bold text-orange-700 my-8 py-6 border-y-2 border-amber-700/30">
-                有人選擇被恐懼吞噬，
-                <br className="md:hidden" />
-                有人選擇相信神的應許。
-              </p>
-            </div>
-          </FadeIn>
-          <FadeIn
-            delay={300}
-            className="mt-12 bg-stone-900 text-amber-400 p-6 md:p-8 rounded-2xl shadow-2xl transform rotate-1 hover:rotate-0 transition-transform"
-          >
+          <Map className="w-16 h-16 mx-auto text-amber-700 mb-6 opacity-80" />
+          <h2 className="text-3xl md:text-5xl font-bold mb-8 text-stone-800 tracking-wider">
+            傳說的開始...
+          </h2>
+          <div className="space-y-6 text-lg md:text-2xl font-medium leading-relaxed text-stone-700">
+            <p>摩西派出了十二名探子，跨越荒蕪的曠野，進入那神秘的迦南地。</p>
+            <p>
+              在那裡，他們看見了
+              <strong className="text-emerald-700">極其豐盛的土地</strong>、
+              <strong className="text-stone-900">高聳入雲的城牆</strong>
+              ，以及令人畏懼的
+              <strong className="text-red-700">亞衲族巨人</strong>。
+            </p>
+            <p>面對巨大的未知...</p>
+            <p className="text-xl md:text-3xl font-bold text-orange-700 my-8 py-6 border-y-2 border-amber-700/30">
+              有人選擇被恐懼吞噬，
+              <br className="md:hidden" />
+              有人選擇相信神的應許。
+            </p>
+          </div>
+          <div className="mt-12 bg-stone-900 text-amber-400 p-6 md:p-8 rounded-2xl shadow-2xl transform rotate-1 hover:rotate-0 transition-transform">
             <h3 className="text-xl md:text-2xl font-bold flex items-center justify-center gap-3">
-              <Flame className="w-6 h-6 text-orange-500 animate-flicker" />{" "}
-              營會核心主題
+              <Flame className="w-6 h-6 text-orange-500" /> 營會核心主題
             </h3>
             <p className="mt-4 text-lg md:text-xl font-medium text-amber-100">
               「真正的勇敢，不是沒有害怕，而是害怕時仍願意相信神。」
             </p>
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -429,31 +322,32 @@ export default function App() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px]" />
 
         <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <FadeIn className="text-center mb-16">
+          <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
               活動特色玩法
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto" />
-          </FadeIn>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {features.map((feature, idx) => (
-              <FadeIn key={idx} delay={idx * 100} direction="up">
-                <div className="group bg-stone-900 border border-stone-800 p-8 rounded-3xl hover:bg-stone-800 hover:border-amber-500/50 transition-all duration-300 relative overflow-hidden h-full">
-                  {/* Hover 發光效果 */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div
+                key={idx}
+                className="group bg-stone-900 border border-stone-800 p-8 rounded-3xl hover:bg-stone-800 hover:border-amber-500/50 transition-all duration-300 relative overflow-hidden h-full"
+              >
+                {/* Hover 發光效果 */}
+                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                  <div className="w-14 h-14 bg-stone-950 border border-stone-800 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:border-amber-500/50 transition-all duration-300 shadow-[0_0_0_rgba(245,158,11,0)] group-hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                    <feature.icon className="w-7 h-7 text-amber-500" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-3 relative z-10">
-                    {feature.title}
-                  </h3>
-                  <p className="text-stone-400 font-medium relative z-10">
-                    {feature.desc}
-                  </p>
+                <div className="w-14 h-14 bg-stone-950 border border-stone-800 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:border-amber-500/50 transition-all duration-300 shadow-[0_0_0_rgba(245,158,11,0)] group-hover:shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                  <feature.icon className="w-7 h-7 text-amber-500" />
                 </div>
-              </FadeIn>
+                <h3 className="text-xl font-bold text-white mb-3 relative z-10">
+                  {feature.title}
+                </h3>
+                <p className="text-stone-400 font-medium relative z-10">
+                  {feature.desc}
+                </p>
+              </div>
             ))}
           </div>
         </div>
@@ -465,14 +359,14 @@ export default function App() {
         className="py-24 bg-stone-900 relative overflow-hidden"
       >
         <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <FadeIn className="text-center mb-20">
+          <div className="text-center mb-20">
             <span className="text-amber-500 font-bold tracking-widest text-sm uppercase mb-2 block">
               Quest Stages
             </span>
             <h2 className="text-4xl md:text-5xl font-black text-white">
               五大冒險關卡
             </h2>
-          </FadeIn>
+          </div>
 
           <div className="relative max-w-4xl mx-auto">
             {/* 中央時間軸線 */}
@@ -494,23 +388,21 @@ export default function App() {
                   <div
                     className={`w-full pl-16 md:pl-0 md:w-[45%] ${isLeft ? "md:mr-auto" : "md:ml-auto"}`}
                   >
-                    <FadeIn delay={100} direction={isLeft ? "left" : "right"}>
-                      <div className="bg-stone-800 border-2 border-stone-700 rounded-2xl p-6 hover:border-amber-500/50 transition-colors shadow-xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                          <stage.icon className="w-24 h-24 text-amber-500" />
-                        </div>
-
-                        <div className="inline-block px-3 py-1 bg-stone-900 rounded-lg text-amber-500 text-xs font-bold mb-3 border border-stone-700">
-                          [ 主線任務 0{idx + 1} ]
-                        </div>
-                        <h3 className="text-2xl font-bold text-white mb-2">
-                          {stage.title}
-                        </h3>
-                        <p className="text-stone-300 min-h-[48px] relative z-10">
-                          {stage.task}
-                        </p>
+                    <div className="bg-stone-800 border-2 border-stone-700 rounded-2xl p-6 hover:border-amber-500/50 transition-colors shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <stage.icon className="w-24 h-24 text-amber-500" />
                       </div>
-                    </FadeIn>
+
+                      <div className="inline-block px-3 py-1 bg-stone-900 rounded-lg text-amber-500 text-xs font-bold mb-3 border border-stone-700">
+                        [ 主線任務 0{idx + 1} ]
+                      </div>
+                      <h3 className="text-2xl font-bold text-white mb-2">
+                        {stage.title}
+                      </h3>
+                      <p className="text-stone-300 min-h-[48px] relative z-10">
+                        {stage.task}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
@@ -524,41 +416,40 @@ export default function App() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950 pointer-events-none" />
 
         <div className="max-w-4xl mx-auto px-6 relative z-10 text-center">
-          <FadeIn>
-            <div className="relative inline-block mb-8">
-              <div className="absolute inset-0 bg-blue-500 blur-[40px] opacity-30 rounded-full animate-pulse-glow" />
-              <Diamond className="w-20 h-20 text-cyan-400 gem-glow-strong relative z-10 animate-float" />
-            </div>
-            <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500 mb-6 drop-shadow-lg">
-              信心石收集系統
-            </h2>
-            <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
-              在每個關卡中，展現出
-              <span className="text-cyan-400 font-bold mx-1">
-                勇敢、合作、鼓勵朋友與不放棄
-              </span>
-              的特質，就能獲得發光的藍色信心石！
-            </p>
-          </FadeIn>
+          <div className="relative inline-block mb-8">
+            <div className="absolute inset-0 bg-blue-500 blur-[40px] opacity-30 rounded-full" />
+            <Diamond className="w-20 h-20 text-cyan-400 gem-glow-strong relative z-10" />
+          </div>
+          <h2 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-500 mb-6 drop-shadow-lg">
+            信心石收集系統
+          </h2>
+          <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
+            在每個關卡中，展現出
+            <span className="text-cyan-400 font-bold mx-1">
+              勇敢、合作、鼓勵朋友與不放棄
+            </span>
+            的特質，就能獲得發光的藍色信心石！
+          </p>
 
           <div className="grid md:grid-cols-3 gap-6">
             {ranks.map((rank, idx) => (
-              <FadeIn key={idx} delay={idx * 150} direction="up">
-                <div className="bg-slate-900/50 border border-blue-900/50 p-6 rounded-2xl backdrop-blur-sm flex flex-col items-center">
-                  <h3 className={`text-2xl font-bold mb-2 ${rank.color}`}>
-                    {rank.title}
-                  </h3>
-                  <p className="text-slate-400 text-sm mb-4">{rank.desc}</p>
-                  <div className="flex gap-1 justify-center flex-wrap">
-                    {[...Array(10)].map((_, i) => (
-                      <Diamond
-                        key={i}
-                        className={`w-5 h-5 ${i < rank.gems ? "text-cyan-400 gem-glow" : "text-slate-800"}`}
-                      />
-                    ))}
-                  </div>
+              <div
+                key={idx}
+                className="bg-slate-900/50 border border-blue-900/50 p-6 rounded-2xl backdrop-blur-sm flex flex-col items-center"
+              >
+                <h3 className={`text-2xl font-bold mb-2 ${rank.color}`}>
+                  {rank.title}
+                </h3>
+                <p className="text-slate-400 text-sm mb-4">{rank.desc}</p>
+                <div className="flex gap-1 justify-center flex-wrap">
+                  {[...Array(10)].map((_, i) => (
+                    <Diamond
+                      key={i}
+                      className={`w-5 h-5 ${i < rank.gems ? "text-cyan-400 gem-glow" : "text-slate-800"}`}
+                    />
+                  ))}
                 </div>
-              </FadeIn>
+              </div>
             ))}
           </div>
         </div>
@@ -571,86 +462,79 @@ export default function App() {
         <div className="absolute bottom-0 left-0 right-0 h-48 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJub25lIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAxMDBMMTAgODVMMjAgMTAwTDMwIDkwTDQwIDEwMEw1MCA4MEw2MCAxMDBMNzAgODVMODAgMTAwTDkwIDkwTDEwMCAxMDBaIiBmaWxsPSIjMGMwYTA5Ii8+PC9zdmc+')] opacity-80 z-0" />
 
         <div className="max-w-5xl mx-auto px-6 relative z-10 text-center">
-          <FadeIn>
-            <div className="inline-block p-4 rounded-full bg-red-950/50 border border-red-500/30 mb-8 animate-pulse">
-              <Users className="w-12 h-12 text-red-500" />
-            </div>
-            <h2 className="text-4xl md:text-6xl font-black text-white mb-6 drop-shadow-xl tracking-wide">
-              大會決斷：我們要進入迦南地嗎？
-            </h2>
-            <p className="text-xl md:text-2xl text-stone-400 font-medium mb-12 max-w-3xl mx-auto">
-              四十天的探索結束，全會眾都在等待你們的報告。在巨大的群眾壓力下，你會舉起藍色投票牌，勇敢說出「我們能得勝」嗎？
-            </p>
-          </FadeIn>
+          <div className="inline-block p-4 rounded-full bg-red-950/50 border border-red-500/30 mb-8 animate-pulse">
+            <Users className="w-12 h-12 text-red-500" />
+          </div>
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-6 drop-shadow-xl tracking-wide">
+            大會決斷：我們要進入迦南地嗎？
+          </h2>
+          <p className="text-xl md:text-2xl text-stone-400 font-medium mb-12 max-w-3xl mx-auto">
+            四十天的探索結束，全會眾都在等待你們的報告。在巨大的群眾壓力下，你會舉起藍色投票牌，勇敢說出「我們能得勝」嗎？
+          </p>
 
-          <FadeIn delay={300} className="flex justify-center gap-8">
-            <div className="w-48 h-64 bg-blue-600 rounded-lg shadow-[0_0_30px_rgba(37,99,235,0.6)] border-4 border-white flex items-center justify-center transform -rotate-12 animate-float">
+          <div className="flex justify-center gap-8">
+            <div className="w-48 h-64 bg-blue-600 rounded-lg shadow-[0_0_30px_rgba(37,99,235,0.6)] border-4 border-white flex items-center justify-center transform -rotate-12">
               <span className="text-white font-bold text-3xl writing-vertical-rl">
                 相信神
               </span>
             </div>
-            <div
-              className="w-48 h-64 bg-stone-800 rounded-lg shadow-xl border-4 border-stone-600 flex items-center justify-center transform rotate-6 animate-float"
-              style={{ animationDelay: "1s" }}
-            >
+            <div className="w-48 h-64 bg-stone-800 rounded-lg shadow-xl border-4 border-stone-600 flex items-center justify-center transform rotate-6">
               <span className="text-stone-400 font-bold text-3xl writing-vertical-rl">
                 太可怕了
               </span>
             </div>
-          </FadeIn>
+          </div>
         </div>
       </section>
 
       {/* ================= 7. Info Card Section ================= */}
       <section className="py-24 bg-stone-900 relative">
         <div className="max-w-3xl mx-auto px-6">
-          <FadeIn direction="up">
-            <div className="parchment-bg rounded-3xl p-8 md:p-12 shadow-2xl border-4 border-stone-800 text-stone-900 relative">
-              <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-red-800 rounded-full border-4 border-stone-900 flex items-center justify-center shadow-lg">
-                <div className="w-4 h-4 bg-amber-400 rounded-full" />
-              </div>
-
-              <h2 className="text-3xl font-black text-center mb-10 border-b-2 border-stone-300 pb-6">
-                活動任務資訊
-              </h2>
-
-              <ul className="space-y-6 text-lg font-bold text-stone-700">
-                <li className="flex items-center gap-4 bg-white/50 p-4 rounded-xl border border-stone-200">
-                  <div className="p-3 bg-amber-100 text-amber-700 rounded-lg">
-                    <MapPin className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="block text-sm text-stone-500 font-medium">
-                      適合對象
-                    </span>
-                    國小學生 (兒童營會、主日學)
-                  </div>
-                </li>
-                <li className="flex items-center gap-4 bg-white/50 p-4 rounded-xl border border-stone-200">
-                  <div className="p-3 bg-amber-100 text-amber-700 rounded-lg">
-                    <Star className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="block text-sm text-stone-500 font-medium">
-                      活動時間
-                    </span>
-                    約 60 分鐘
-                  </div>
-                </li>
-                <li className="flex items-center gap-4 bg-white/50 p-4 rounded-xl border border-stone-200">
-                  <div className="p-3 bg-amber-100 text-amber-700 rounded-lg">
-                    <Sword className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="block text-sm text-stone-500 font-medium">
-                      活動形式
-                    </span>
-                    闖關 + 團隊解謎合作
-                  </div>
-                </li>
-              </ul>
+          <div className="parchment-bg rounded-3xl p-8 md:p-12 shadow-2xl border-4 border-stone-800 text-stone-900 relative">
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-red-800 rounded-full border-4 border-stone-900 flex items-center justify-center shadow-lg">
+              <div className="w-4 h-4 bg-amber-400 rounded-full" />
             </div>
-          </FadeIn>
+
+            <h2 className="text-3xl font-black text-center mb-10 border-b-2 border-stone-300 pb-6">
+              活動任務資訊
+            </h2>
+
+            <ul className="space-y-6 text-lg font-bold text-stone-700">
+              <li className="flex items-center gap-4 bg-white/50 p-4 rounded-xl border border-stone-200">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-lg">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="block text-sm text-stone-500 font-medium">
+                    適合對象
+                  </span>
+                  國小學生 (兒童營會、主日學)
+                </div>
+              </li>
+              <li className="flex items-center gap-4 bg-white/50 p-4 rounded-xl border border-stone-200">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-lg">
+                  <Star className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="block text-sm text-stone-500 font-medium">
+                    活動時間
+                  </span>
+                  約 60 分鐘
+                </div>
+              </li>
+              <li className="flex items-center gap-4 bg-white/50 p-4 rounded-xl border border-stone-200">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-lg">
+                  <Sword className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="block text-sm text-stone-500 font-medium">
+                    活動形式
+                  </span>
+                  闖關 + 團隊解謎合作
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -659,21 +543,19 @@ export default function App() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-900/40 via-slate-950 to-slate-950" />
 
         <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <FadeIn>
-            <h2 className="text-3xl md:text-5xl font-black text-amber-400 mb-12 leading-tight">
-              「十二探子看見的是同樣的巨人，
-              <br className="hidden md:block" />
-              但約書亞與迦勒選擇相信神。」
-            </h2>
-            <div className="w-1 h-16 bg-gradient-to-b from-amber-500 to-transparent mx-auto mb-12" />
-            <p className="text-2xl md:text-4xl font-bold text-white leading-relaxed drop-shadow-xl">
-              真正的勇敢，
-              <br />
-              不是沒有害怕，
-              <br />
-              <span className="text-emerald-400">而是害怕時仍願意相信神。</span>
-            </p>
-          </FadeIn>
+          <h2 className="text-3xl md:text-5xl font-black text-amber-400 mb-12 leading-tight">
+            「十二探子看見的是同樣的巨人，
+            <br className="hidden md:block" />
+            但約書亞與迦勒選擇相信神。」
+          </h2>
+          <div className="w-1 h-16 bg-gradient-to-b from-amber-500 to-transparent mx-auto mb-12" />
+          <p className="text-2xl md:text-4xl font-bold text-white leading-relaxed drop-shadow-xl">
+            真正的勇敢，
+            <br />
+            不是沒有害怕，
+            <br />
+            <span className="text-emerald-400">而是害怕時仍願意相信神。</span>
+          </p>
         </div>
       </section>
 
